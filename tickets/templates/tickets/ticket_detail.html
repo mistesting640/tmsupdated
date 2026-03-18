@@ -1,0 +1,169 @@
+{% extends 'tickets/base.html' %}
+
+{% block content %}
+
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+
+      <!-- Ticket Header Card -->
+      <div class="card shadow-lg border-0 mb-4 overflow-hidden">
+        <div class="card-header bg-gradient-primary text-white py-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <h2 class="mb-0 fw-bold">{{ ticket.title }}</h2>
+            <div>
+              <span class="badge bg-light text-dark fs-6 px-3 py-2">
+                {% if ticket.status == 'Open' %}🟢 Open{% elif ticket.status == 'In Progress' %}🟡 In Progress{% elif ticket.status == 'Closed' %}🔴 Closed{% else %}{{ ticket.status }}{% endif %}
+              </span>
+              <span class="badge ms-2 fs-6 px-3 py-2
+                {% if ticket.priority == 'High' %}bg-danger
+                {% elif ticket.priority == 'Medium' %}bg-warning text-dark
+                {% elif ticket.priority == 'Low' %}bg-success
+                {% else %}bg-secondary{% endif %}">
+                {{ ticket.priority }} Priority
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-4 p-md-5 bg-light-subtle">
+          <div class="mb-4">
+            <h5 class="text-muted mb-3"><i class="fas fa-info-circle me-2"></i>Description</h5>
+            <p class="lead text-dark lh-lg" style="white-space: pre-wrap;">{{ ticket.description|linebreaksbr }}</p>
+          </div>
+
+          <div class="row g-4 small text-muted">
+            <div class="col-md-4">
+              <strong>Created:</strong> {{ ticket.created_at|date:"d M Y H:i" }}
+            </div>
+            <div class="col-md-4">
+              <strong>By:</strong> {{ ticket.user|default:"Anonymous" }}
+            </div>
+            <div class="col-md-4">
+              <strong>Last updated:</strong> {{ ticket.updated_at|default:ticket.created_at|date:"d M Y H:i" }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comments Section -->
+      <div class="card shadow-lg border-0">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+          <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-comments me-2 text-primary"></i>
+            Comments ({{ comments.count }})
+          </h4>
+          {% if comments.exists %}
+            <small class="text-muted">Most recent first</small>
+          {% endif %}
+        </div>
+
+        <div class="card-body p-0">
+          {% if comments %}
+            <div class="comment-thread px-4 pt-4">
+              {% for comment in comments %}
+                <div class="comment-card mb-4 {% if forloop.last %}mb-0{% endif %}">
+                  <div class="d-flex">
+                    <!-- Avatar placeholder -->
+                    <div class="flex-shrink-0 me-3">
+                      <div class="avatar rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold" style="width:48px; height:48px;">
+                        {{ comment.user.username|slice:":1"|upper }}
+                      </div>
+                    </div>
+
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-content-between align-items-baseline mb-1">
+                        <strong class="text-dark">{{ comment.user|default:"System" }}</strong>
+                        <small class="text-muted">{{ comment.created_at|timesince }} ago</small>
+                      </div>
+                      <div class="comment-body p-3 bg-white border rounded shadow-sm">
+                        <p class="mb-0" style="white-space: pre-wrap;">{{ comment.message|linebreaksbr }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5 text-muted">
+              <i class="far fa-comment-dots fa-3x mb-3 d-block opacity-50"></i>
+              <p class="lead">No comments yet.</p>
+              <p>Be the first to add one below!</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Add Comment Form -->
+        <div class="card-footer bg-light border-0 p-4">
+          <h5 class="mb-3 fw-semibold"><i class="fas fa-plus-circle me-2 text-success"></i>Add a Comment</h5>
+
+          <form method="POST" class="comment-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+              </div>
+            {% endif %}
+
+            <div class="mb-3">
+              {{ form.message.label_tag }}
+              {{ form.message }}
+              {% if form.message.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.message.errors }}
+                </div>
+              {% endif %}
+              <!-- <small class="form-text text-muted">
+                Markdown supported: *italic*, **bold**, `code`, > quote
+              </small> -->
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-paper-plane me-2"></i>Post Comment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .bg-gradient-primary {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  }
+  .avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+  .comment-body {
+    position: relative;
+  }
+  .comment-body::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: -10px;
+    border: 6px solid transparent;
+    border-right-color: white;
+  }
+  .comment-thread .comment-card:not(:last-child) {
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .comment-form textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+  .comment-form textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 0.25rem rgba(99,102,241,0.25);
+  }
+</style>
+
+{% endblock %}

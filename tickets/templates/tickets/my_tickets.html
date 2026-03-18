@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .ticket-card {
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: 0.2s ease;
+  }
+
+  .ticket-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  }
+
+  .ticket-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .ticket-meta {
+    font-size: 0.85rem;
+    color: #6b7280;
+  }
+
+  .badge-status {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 20px;
+  }
+
+  .empty-box {
+    text-align: center;
+    padding: 50px;
+    background: #f9fafb;
+    border-radius: 12px;
+    color: #6b7280;
+  }
+</style>
+
+<div class="container mt-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>🎫 My Tickets</h3>
+    <a href="{% url 'tickets:create_ticket' %}" class="btn btn-primary">
+      + Create Ticket
+    </a>
+  </div>
+
+  <!-- Ticket List -->
+  <div class="row g-3">
+
+    {% for ticket in tickets %}
+    <div class="col-md-6 col-lg-4">
+      <div class="ticket-card">
+
+        <!-- Title -->
+        <div class="ticket-title mb-2">
+          <a href="{% url 'tickets:ticket_detail' ticket.id %}" style="text-decoration:none; color:#111;">
+            {{ ticket.title }}
+          </a>
+        </div>
+
+        <!-- Status -->
+        <div class="mb-2">
+          <span class="badge badge-status
+            {% if ticket.status == 'Open' %}bg-primary
+            {% elif ticket.status == 'Pending' %}bg-warning text-dark
+            {% elif ticket.status == 'Closed' %}bg-success
+            {% else %}bg-secondary{% endif %}">
+            {{ ticket.status }}
+          </span>
+        </div>
+
+        <!-- Meta -->
+        <div class="ticket-meta">
+          Priority: <strong>{{ ticket.priority }}</strong><br>
+          Created: {{ ticket.created_at|date:"M d, Y" }}
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+
+  <!-- Empty State -->
+  {% if not tickets %}
+  <div class="empty-box mt-4">
+    <h5>No tickets found 😕</h5>
+    <p>Create your first ticket to get started</p>
+    <a href="{% url 'tickets:create_ticket' %}" class="btn btn-primary mt-2">
+      Create Ticket
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

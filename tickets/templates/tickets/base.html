@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}TMS - Ticket Management{% endblock %}</title>
+
+  <!-- Bootstrap 5.3 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.css">
+  <style>
+    :root {
+      --sidebar-bg: #1f2937;
+      --sidebar-text: #e5e7eb;
+      --sidebar-hover: #374151;
+      --sidebar-active: #3b82f6;
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --body-bg: #f8fafc;
+      --card-bg: #ffffff;
+    }
+
+    [data-bs-theme="dark"] {
+      --sidebar-bg: #111827;
+      --sidebar-text: #d1d5db;
+      --sidebar-hover: #1f2937;
+      --sidebar-active: #60a5fa;
+      --body-bg: #0f172a;
+      --card-bg: #1e293b;
+    }
+
+    body {
+      background: var(--body-bg);
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #1e293b;
+    }
+
+    [data-bs-theme="dark"] body {
+      color: #e2e8f0;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 260px;
+      z-index: 1030;
+      transition: transform 0.3s ease-in-out;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-nav .nav-link {
+      color: var(--sidebar-text);
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      margin: 0.25rem 1rem;
+      transition: all 0.2s;
+    }
+
+    .sidebar-nav .nav-link:hover,
+    .sidebar-nav .nav-link:focus {
+      background: var(--sidebar-hover);
+      color: white;
+    }
+
+    .sidebar-nav .nav-link.active {
+      background: var(--sidebar-active);
+      color: white;
+      font-weight: 500;
+    }
+
+    .sidebar-nav .nav-link i {
+      width: 24px;
+      text-align: center;
+      margin-right: 0.75rem;
+    }
+
+    /* Main content */
+    .main-content {
+      margin-left: 260px;
+      min-height: 100vh;
+      transition: margin-left 0.3s ease-in-out;
+    }
+
+    /* Offcanvas mobile behavior */
+    @media (max-width: 992px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.show {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+      }
+    }
+
+    /* Navbar */
+    .navbar {
+      background: var(--card-bg);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    [data-bs-theme="dark"] .navbar {
+      border-bottom-color: rgba(255,255,255,0.08);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    .btn-toggle-sidebar {
+      font-size: 1.4rem;
+    }
+  </style>
+</head>
+<body>
+<div style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="toast-msg">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<style>
+.toast-msg {
+  background: #22c55e;
+  color: white;
+  padding: 12px 20px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  animation: fadeInOut 3s forwards;
+}
+
+@keyframes fadeInOut {
+  0% {opacity: 0; transform: translateY(-10px);}
+  10% {opacity: 1;}
+  90% {opacity: 1;}
+  100% {opacity: 0; transform: translateY(-10px);}
+}
+</style>
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-expand-lg sticky-top">
+    <div class="container-fluid px-4">
+      <button class="btn btn-link btn-toggle-sidebar text-dark me-3 d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
+        <i class="fas fa-bars fa-lg"></i>
+      </button>
+
+      <a class="navbar-brand fw-bold fs-4 text-primary" href="/">TMS</a>
+
+      <div class="ms-auto d-flex align-items-center gap-3">
+        <!-- User info / dropdown -->
+     <div class="dropdown">
+  <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width:36px; height:36px;">
+      {% if user.is_authenticated and user.profile.avatar %}
+        <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="rounded-circle" style="width:100%; height:100%; object-fit:cover;">
+      {% else %}
+        <i class="fas fa-user"></i>
+      {% endif %}
+    </div>
+    <span class="d-none d-md-inline text-dark">
+      {% if user.is_authenticated %}
+        {{ user.get_short_name|default:user.username|capfirst }}
+      {% else %}
+        Guest
+      {% endif %}
+    </span>
+  </a>
+  <ul class="dropdown-menu dropdown-menu-end shadow">
+    {% if user.is_authenticated %}
+      <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
+      <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
+      <li><hr class="dropdown-divider"></li>
+      <li>
+        <a href="{% url 'tickets:logout' %}" class="dropdown-item" onclick="return confirmLogout()">
+          <i class="fas fa-sign-out-alt me-2"></i> Logout
+        </a>
+      </li>
+    {% else %}
+      <li><a class="dropdown-item" href="{% url 'login' %}"><i class="fas fa-sign-in-alt me-2"></i> Sign In</a></li>
+    {% endif %}
+  </ul>
+</div>
+
+        <!-- Theme toggle (optional – extend later) -->
+        <button class="btn btn-link text-dark" id="theme-toggle" title="Toggle dark mode">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar (desktop + offcanvas mobile) -->
+  <div class="sidebar d-flex flex-column" id="sidebarOffcanvas">
+    <div class="sidebar-header">
+      <h4 class="mb-0 text-white">TMS</h4>
+      <small class="text-white-50">Support System</small>
+    </div>
+
+    <nav class="sidebar-nav flex-grow-1 mt-3">
+  <ul class="nav flex-column">
+
+    <li class="nav-item">
+  <a class="nav-link" href="{% url 'tickets:dashboard' %}">
+    <i class="fas fa-tachometer-alt"></i> Dashboard
+  </a>
+</li>
+
+{% if is_customer %}
+<li class="nav-item d-flex justify-content-between align-items-center px-3">
+  <a class="nav-link p-0" href="{% url 'tickets:my_tickets' %}">
+    <i class="fas fa-list-ul"></i> My Tickets
+  </a>
+  <span class="badge bg-primary">{{ my_ticket_count }}</span>
+</li>
+{% endif %}
+
+{% if is_agent %}
+<li class="nav-item d-flex justify-content-between align-items-center px-3">
+  <a class="nav-link p-0" href="{% url 'tickets:agent_queue' %}">
+    <i class="fas fa-inbox"></i> Queue
+  </a>
+  <span class="badge bg-warning text-dark">{{ unassigned_count }}</span>
+</li>
+
+<li class="nav-item d-flex justify-content-between align-items-center px-3">
+  <a class="nav-link p-0" href="{% url 'tickets:my_assigned' %}">
+    <i class="fas fa-user-check"></i> Assigned
+  </a>
+  <span class="badge bg-success">{{ assigned_count }}</span>
+</li>
+{% endif %}
+
+    {% if is_admin %}
+      <li class="nav-item">
+        <a class="nav-link" href="/admin/">
+          <i class="fas fa-user-shield"></i> Admin Panel
+        </a>
+      </li>
+    {% endif %} 
+
+  </ul>
+</nav>
+    <div class="p-3 mt-auto border-top border-light border-opacity-10">
+      <small class="text-white-50">© {{ 'now'|date:'Y' }} TMS</small>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="container-fluid py-4 px-4 px-lg-5">
+      {% block content %}
+        <!-- Page content goes here -->
+      {% endblock %}
+    </div>
+  </main>
+
+  <!-- Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
+<script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Optional: Simple dark mode toggle -->
+  <script>
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-bs-theme');
+        html.setAttribute('data-bs-theme', current === 'dark' ? 'light' : 'dark');
+        toggle.innerHTML = current === 'dark' 
+          ? '<i class="fas fa-moon"></i>' 
+          : '<i class="fas fa-sun"></i>';
+      });
+    }
+  </script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

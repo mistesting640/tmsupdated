@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --error: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #114697 0%, #2791f5 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      color: var(--text);
+    }
+
+    .login-container {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 420px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1.9rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    input {
+      width: 100%;
+      padding: 0.9rem 1rem 0.9rem 2.8rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      background: #f9fafb;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      background: white;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 2.55rem;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 1rem;
+      top: 2.6rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.1rem;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 1rem;
+      background: #114697;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      margin-top: 1.5rem;
+      box-shadow: 0 4px 6px rgba(99,102,241,0.2);
+    }
+
+    button[type="submit"]:hover {
+      background: #2791f5;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99,102,241,0.3);
+    }
+
+    button[type="submit"]:active {
+      transform: translateY(0);
+    }
+
+    .forgot-password {
+      text-align: right;
+      margin: 0.8rem 0 1.8rem;
+    }
+
+    .forgot-password a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+
+    .forgot-password a:hover {
+      text-decoration: underline;
+    }
+
+    .errorlist {
+      color: var(--error);
+      font-size: 0.9rem;
+      margin-top: 0.35rem;
+      list-style: none;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 2rem 1.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+  <h1>Welcome back</h1>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <ul class="errorlist" style="color:var(--error); text-align:center; margin-bottom:1.5rem;">
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="form-group">
+      <label for="{{ form.username.id_for_label }}">Email or Username</label>
+      <i class="fas fa-user input-icon"></i>
+      {{ form.username }}
+      {% if form.username.errors %}
+        <ul class="errorlist">
+          {% for error in form.username.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      <i class="fas fa-lock input-icon"></i>
+      {{ form.password }}
+      <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+        <i class="far fa-eye"></i>
+      </button>
+      {% if form.password.errors %}
+        <ul class="errorlist">
+          {% for error in form.password.errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <!-- <div class="forgot-password">
+      <a href="#">Forgot password?</a>
+    </div> -->
+
+    <button type="submit">Sign In</button>
+    <div style="text-align:center; margin-top:1.5rem;">
+  <span style="color:#64748b;">Don’t have an account?</span>
+  <a href="{% url 'tickets:register' %}" style="color:#114697; font-weight:600; text-decoration:none; margin-left:5px;">
+    Register
+  </a>
+</div>
+  </form>
+</div>
+
+<script>
+  // Simple show/hide password toggle
+  document.querySelector('.password-toggle').addEventListener('click', function() {
+    const passwordInput = document.querySelector('input[name="password"]');
+    const icon = this.querySelector('i');
+    
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      passwordInput.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  });
+</script>
+
+</body>
+</html>

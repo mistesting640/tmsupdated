@@ -1,0 +1,517 @@
+{% extends "tickets/base.html" %}
+
+{% block title %}Dashboard - TMS{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <h2 class="mb-0 fw-semibold">
+    <i class="fas fa-tachometer-alt me-2 text-primary"></i>
+    {% if role == "customer" %}(CUSTOMER)
+  {% elif role == "internal" %}(DEPARTMENT)
+  {% elif role == "manager" %}(MANAGER)
+  {% endif %}
+  </h2>
+
+  <div class="d-flex gap-2">
+    {% if role == "customer" %}
+<a href="{% url 'tickets:create_ticket' %}" class="btn btn-primary mb-3">
+  + Create Ticket
+</a>
+{% endif %}
+  </div>
+</div>
+
+<!-- Stats Cards – colored backgrounds -->
+<div class="row g-4 mb-5">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-lg text-white bg-primary overflow-hidden hover-lift">
+      <div class="card-body text-center position-relative">
+        <div class="fs-1 mb-2 opacity-75"><i class="fas fa-ticket-alt"></i></div>
+        <h6 class="mb-1">Total Tickets</h6>
+        <h3 class="fw-bold mb-0">{{ tickets.count|default:0 }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-lg text-white bg-success overflow-hidden hover-lift">
+      <div class="card-body text-center position-relative">
+        <div class="fs-1 mb-2 opacity-75"><i class="fas fa-door-open"></i></div>
+        <h6 class="mb-1">Open</h6>
+        <h3 class="fw-bold mb-0">{{ open_count|default:0 }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-lg text-white bg-warning overflow-hidden hover-lift">
+      <div class="card-body text-center position-relative">
+        <div class="fs-1 mb-2 opacity-75"><i class="fas fa-clock"></i></div>
+        <h6 class="mb-1">Pending</h6>
+        <h3 class="fw-bold mb-0">{{ pending_count|default:0 }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-lg text-white bg-danger overflow-hidden hover-lift">
+      <div class="card-body text-center position-relative">
+        <div class="fs-1 mb-2 opacity-75"><i class="fas fa-check-circle"></i></div>
+        <h6 class="mb-1">Closed</h6>
+        <h3 class="fw-bold mb-0">{{ closed_count|default:0 }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-5">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white border-0 pb-0">
+        <h5 class="card-title mb-0">Tickets by Status</h5>
+      </div>
+      <div class="card-body">
+        <div style="height:300px;">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white border-0 pb-0">
+        <h5 class="card-title mb-0">Tickets by Priority</h5>
+      </div>
+      <div class="card-body">
+        <div style="height:300px;">
+        <canvas id="priorityChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters & Search -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="me-2 fw-medium">Quick Filter:</span>
+    <div class="d-inline-flex flex-wrap gap-2">
+      <a href="?status="
+        class="btn btn-outline-secondary btn-sm {% if not request.GET.status %}active{% endif %}">All</a>
+      <a href="?status=Open"
+        class="btn btn-outline-success btn-sm {% if request.GET.status == 'Open' %}active{% endif %}">Open</a>
+      <a href="?status=Pending"
+        class="btn btn-outline-warning btn-sm {% if request.GET.status == 'Pending' %}active{% endif %}">Pending</a>
+      <a href="?status=Closed"
+        class="btn btn-outline-danger btn-sm {% if request.GET.status == 'Closed' %}active{% endif %}">Closed</a>
+    </div>
+  </div>
+
+  <form method="GET" class="d-flex flex-grow-1 flex-md-grow-0" style="max-width: 350px;">
+    <div class="input-group">
+      <input type="text" name="search" value="{{ request.GET.search|default:'' }}" class="form-control"
+        placeholder="Search tickets by title or ID..." aria-label="Search">
+      <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
+    </div>
+  </form>
+</div>
+
+<!-- Tickets Table -->
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Recent Tickets</h5>
+    <small class="text-muted">Showing all tickets</small>
+  </div>
+
+  {% if tickets %}
+  <div class="card-body p-0">
+    <table id="ticketsTable" class="table table-hover table-borderless mb-0 align-middle">
+      <thead class="table-light">
+      <tr>
+    <th>ID</th>
+    <th>Title</th>
+    <th>Project</th>        <!-- NEW -->
+    <th>Status</th>
+    <th>Priority</th>
+    <th>Assigned To</th>
+    <th>Created At</th>        <!-- NEW -->
+    <th>SLA</th>            <!-- NEW -->
+    <th class="text-end">Actions</th>
+  </tr>
+      </thead>
+      <tbody>
+  {% for ticket in tickets %}
+  <tr>
+    <td><strong>#{{ ticket.id }}</strong></td>
+
+    <td>
+      <a href="{% url 'tickets:ticket_detail' ticket.id %}" class="text-decoration-none fw-medium text-dark">
+        {{ ticket.title|truncatewords:8 }}
+      </a>
+    </td>
+
+    <!-- ✅ PROJECT -->
+    <td>{{ ticket.project }}</td>
+
+    <!-- STATUS -->
+    <td>
+      <span class="badge
+        {% if ticket.status == 'Open' %}bg-success
+        {% elif ticket.status == 'Pending' %}bg-warning text-dark
+        {% elif ticket.status == 'Closed' %}bg-secondary
+        {% else %}bg-info{% endif %}">
+        {{ ticket.status }}
+      </span>
+    </td>
+
+    <!-- PRIORITY -->
+    <td>
+      <span class="badge
+        {% if ticket.priority == 'High' or ticket.priority == 'Critical' %}bg-danger
+        {% elif ticket.priority == 'Medium' %}bg-warning text-dark
+        {% elif ticket.priority == 'Low' %}bg-success
+        {% else %}bg-secondary{% endif %}">
+        {{ ticket.priority }}
+      </span>
+    </td>
+
+    <!-- ASSIGNED -->
+    <td>{{ ticket.assigned_to|default:"Unassigned" }}</td>
+
+    <!-- ✅ CREATED -->
+    <td>{{ ticket.created_at|date:"d M Y, H:i" }}</td>
+
+    <!-- ✅ SLA -->
+    <td>
+      {% if ticket.sla_deadline %}
+        {% if ticket.sla_deadline < now %}
+          <span class="badge bg-danger">Breached</span>
+        {% else %}
+          <span class="badge bg-success">
+            {{ ticket.sla_deadline|timeuntil }}
+          </span>
+        {% endif %}
+      {% else %}
+        <span class="text-muted">N/A</span>
+      {% endif %}
+    </td>
+
+    <!-- ACTION -->
+    <td>
+  {% if role == "customer" %}
+    
+    <!-- CUSTOMER ACTIONS -->
+    <button 
+    class="btn btn-sm btn-warning edit-btn"
+    data-id="{{ ticket.id }}"
+    data-title="{{ ticket.title }}"
+    data-description="{{ ticket.description }}"
+    data-priority="{{ ticket.priority }}"
+    data-status="{{ ticket.status }}"
+>
+    Edit
+</button>
+    <a href="{% url 'tickets:delete_ticket' ticket.id %}" class="btn btn-sm btn-danger">Delete</a>
+
+  {% elif role == "internal" or role == "manager" %}
+    
+    <!-- INTERNAL ACTION -->
+    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#statusModal{{ ticket.id }}">
+    Update Status
+</button>
+
+  {% endif %}
+</td>
+
+  </tr>
+  <div class="modal fade" id="statusModal{{ ticket.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <form method="POST" action="{% url 'tickets:update_status' ticket.id %}">
+        {% csrf_token %}
+
+        <div class="modal-header">
+          <h5 class="modal-title">Update Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <select name="status" class="form-control">
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Update</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    
+    <h4>Edit Ticket</h4>
+
+    <form id="editForm" method="POST" data-url="{% url 'tickets:edit_ticket' 0 %}">
+      {% csrf_token %}
+
+      <input type="hidden" name="ticket_id" id="edit_id">
+
+      <label>Title</label>
+      <input type="text" name="title" id="edit_title" class="form-control">
+
+      <label>Description</label>
+      <textarea name="description" id="edit_description" class="form-control"></textarea>
+
+      <label>Priority</label>
+      <select name="priority" id="edit_priority" class="form-control">
+        <option>Low</option>
+        <option>Medium</option>
+        <option>High</option>
+        <option>Critical</option>
+      </select>
+
+      <br>
+      <button type="submit" class="btn btn-success">Save</button>
+      <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+
+    </form>
+
+  </div>
+</div>
+
+  {% endfor %}
+</tbody>
+    </table>
+  </div>
+  {% else %}
+  <!-- empty state remains the same -->
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Helper: safely convert template variable to number (fallback to 0)
+    function safeNum(value) {
+      const num = Number(value);
+      return isNaN(num) ? 0 : num;
+    }
+
+    // ── Status Doughnut Chart ────────────────────────────────────────
+    const statusCanvas = document.getElementById('statusChart');
+    if (statusCanvas) {
+      const statusCtx = statusCanvas.getContext('2d');
+
+      new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Open', 'Pending', 'Closed'],
+          datasets: [{
+            label: 'Tickets',
+            data: [
+              safeNum("{{ open_count|default:0 }}"),
+              safeNum("{{ pending_count|default:0 }}"),
+              safeNum("{{ closed_count|default:0 }}")
+            ],
+            backgroundColor: [
+              'rgba(34, 197, 94, 0.85)',   // green
+              'rgba(234, 179, 8,   0.85)', // yellow
+              'rgba(239, 68, 68,   0.85)'  // red
+            ],
+            borderColor: [
+              'rgb(34, 197, 94)',
+              'rgb(234, 179, 8)',
+              'rgb(239, 68, 68)'
+            ],
+            borderWidth: 1,
+            hoverOffset: 16
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { padding: 20, font: { size: 13 } }
+            },
+            tooltip: {
+              enabled: true,
+              backgroundColor: 'rgba(15, 23, 42, 0.92)',
+              titleFont: { size: 14 },
+              bodyFont: { size: 13 },
+              callbacks: {
+                label: (context) => `${context.label}: ${context.raw}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ── Priority Bar Chart ───────────────────────────────────────────
+    const priorityCanvas = document.getElementById('priorityChart');
+    if (priorityCanvas) {
+      const priorityCtx = priorityCanvas.getContext('2d');
+
+      new Chart(priorityCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Low', 'Medium', 'High', 'Critical'],
+          datasets: [{
+            label: 'Number of Tickets',
+            data: [
+              safeNum("{{ low|default:0 }}"),
+              safeNum("{{ medium|default:0 }}"),
+              safeNum("{{ high|default:0 }}"),
+              safeNum("{{ critical|default:0 }}")
+            ],
+            backgroundColor: [
+              'rgba(34, 197, 94, 0.7)',   // green
+              'rgba(234, 179, 8,   0.7)', // yellow
+              'rgba(249, 115, 22,  0.7)', // orange
+              'rgba(239, 68, 68,   0.7)'  // red
+            ],
+            borderColor: [
+              'rgb(34, 197, 94)',
+              'rgb(234, 179, 8)',
+              'rgb(249, 115, 22)',
+              'rgb(239, 68, 68)'
+            ],
+            borderWidth: 1,
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, font: { size: 12 } }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 13 } }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              enabled: true,
+              backgroundColor: 'rgba(15, 23, 42, 0.92)'
+            }
+          }
+        }
+      });
+    }
+  });
+</script>
+<!-- DataTables Initialization -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // ... your chart code remains here ...
+
+    // Initialize DataTables
+    const table = new DataTable('#ticketsTable', {
+      pageLength: 10,              // items per page
+      lengthMenu: [5, 10, 25, 50], // dropdown options
+      order: [[0, 'desc']],        // default sort by ID descending
+      language: {
+        search: "Filter:",
+        lengthMenu: "Show _MENU_ tickets",
+        info: "Showing _START_ to _END_ of _TOTAL_ tickets",
+        infoEmpty: "No tickets found",
+        infoFiltered: "(filtered from _MAX_ total tickets)",
+        paginate: {
+          first: '«',
+          last: '»',
+          next: '›',
+          previous: '‹'
+        }
+      },
+      columnDefs: [
+        { orderable: false, targets: 5 } // disable sorting on Actions column
+      ]
+    });
+
+    // Enable Bootstrap tooltips (for the eye icon)
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].forEach(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+  });
+</script>
+<script>
+const modal = document.getElementById("editModal");
+
+document.querySelectorAll(".edit-btn").forEach(button => {
+    button.addEventListener("click", function () {
+
+        document.getElementById("edit_id").value = this.dataset.id;
+        document.getElementById("edit_title").value = this.dataset.title;
+        document.getElementById("edit_description").value = this.dataset.description;
+        document.getElementById("edit_priority").value = this.dataset.priority;
+
+        modal.style.display = "block";
+    });
+});
+
+function closeModal() {
+    modal.style.display = "none";
+}
+</script>
+<script>
+const baseUrl = document.getElementById("editForm").dataset.url;
+
+document.querySelectorAll(".edit-btn").forEach(button => {
+    button.addEventListener("click", function () {
+
+        const id = this.dataset.id;
+
+        let url = baseUrl.replace('/0/', '/' + id + '/');
+        document.getElementById("editForm").action = url;
+
+    });
+});
+</script>
+<style>
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+  }
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    width: 400px;
+    margin: 100px auto;
+    border-radius: 10px;
+}
+</style>
+{% endblock %}

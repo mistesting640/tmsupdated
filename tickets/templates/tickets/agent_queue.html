@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Unassigned Tickets</h2>
+
+<table border="1">
+    <tr>
+        <th>Title</th>
+        <th>Priority</th>
+        <th>Action</th>
+    </tr>
+
+    {% for ticket in tickets %}
+    <tr>
+        <td>{{ ticket.title }}</td>
+        <td>{{ ticket.priority }}</td>
+        <td>
+            <a href="{% url 'assign_ticket' ticket.id %}">
+                Assign to Me
+            </a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="3">No unassigned tickets</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
